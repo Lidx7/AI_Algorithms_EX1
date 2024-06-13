@@ -13,6 +13,9 @@ public class BayesBall {
         trueConditions = new ArrayList<Character>();
         falseConditions = new ArrayList<Character>();
         readVariables();
+        System.out.println("Variables: " + variables);
+        System.out.println("True Conditions: " + trueConditions);
+        System.out.println("False Conditions: " + falseConditions);
     }
 
     /*TODO: this could be too messy. find a way to make it less junked / simpler and don't relay
