@@ -87,10 +87,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 
-/** myXMLreader Class: The purpose of this class is to read the XML file, that represents the
- *  Bayesian Network, as required. It works by reading line by line. It builds the network
- *  (represented by an HashMap) by matching each variable to its node. If it finds an error
- *  in the given line it will stop the reading, throw an exception and close the XML file.
+/* XMLFileReade4: The purpose of this class is to read the XML fil.
+ * It works by reading line by line. It builds the network
+ * (represented by an HashMap) by matching each variable to its node.
  */
 
 public class XMLFileReader {

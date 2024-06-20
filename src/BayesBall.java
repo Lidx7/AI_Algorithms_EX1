@@ -49,7 +49,7 @@ public class BayesBall {
 
     public static boolean getDependent(){
         markConditions();
-        return Algorithm(variableMap.get(variables.get(0)), variables.get(1).toString(), variableMap) != null;
+        return Algorithm(variableMap.get(variables.get(0)), variables.get(1), variableMap) != null;
     }
 
     public static void resetVars()

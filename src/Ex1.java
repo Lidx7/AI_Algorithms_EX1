@@ -1,14 +1,20 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Scanner;
 
-public class Main {
-    public static void main(String[] args) {
+public class Ex1 {
+    public static void main(String[] args) throws IOException {
         String sourceFile = "";
+        System.out.println("Working Directory = " + System.getProperty("user.dir"));
+
         File input_file = new File("input.txt");
+        FileWriter output_file = new FileWriter("output.txt");
         HashMap<String, Node> variableMap;
+        XMLFileReader xml = null;
+
         /*TODO: the following code just calls these classe to check if they work properly.
                 should build some code that calls the xml reader independently and uses it.*/
         try{
@@ -16,26 +22,32 @@ public class Main {
             while(scanner.hasNextLine()){
                 String data = scanner.nextLine();
                 if(data.charAt(0) == 'P'){
-                    XMLFileReader xml = new XMLFileReader(sourceFile);
                     variableMap = xml.getMap();
                     System.out.println("Variable Elimination Method");
                     VariableElimination ve = new VariableElimination(data.substring(1), variableMap);
+                    String ans = ve.getAlgorithm();
+                    output_file.write(ans + "\n");
+                    System.out.println(ans);
+
                 }
                 else if(data.contains("|")){
-                    XMLFileReader xml = new XMLFileReader(sourceFile);
                     variableMap = xml.getMap();
                     System.out.println("Bayes Ball Method");
                     BayesBall bb = new BayesBall(data, variableMap);
 
-                    if(BayesBall.getDependent())
+                    if(!bb.getDependent()) {
+                        output_file.write("yes\n");
                         System.out.println("yes\n");
-                    else
+                    }
+                    else {
+                        output_file.write("no\n");
                         System.out.println("no\n");
+                    }
                 }
-                else{
+                else if(data.contains(".xml")){
                     sourceFile = data;
 //                    System.out.println("XML File Reader");
-//                    XMLFileReader xml = new XMLFileReader(sourceFile);
+                    xml = new XMLFileReader(sourceFile);
 //                    variableMap = xml.getXMLFile();
 
 
@@ -48,6 +60,7 @@ public class Main {
             throw new RuntimeException(e);
         }
 
+        output_file.close();
 
     }
 }

@@ -5,22 +5,26 @@ public class VariableElimination {
     String data;
     boolean conditionsFlag;
     boolean hiddenVarFlag;
-    ArrayList<Character> variables;
-    ArrayList<Character> trueConditions;
-    ArrayList<Character> falseConditions;
-    ArrayList<Character> hiddenVariables; //TODO: implement this!!!!
+    ArrayList<String> variables;
+    ArrayList<String> trueConditions;
+    ArrayList<String> falseConditions;
+    ArrayList<String> hiddenVariables; //TODO: implement this!!!!
     HashMap<String, Node> variableMap;
 
+    int addingSum;
+    int multiSum;
 
     public VariableElimination(String data, HashMap<String, Node> varMap) {
         this.data = data;
         this.variableMap = varMap;
-        variables = new ArrayList<Character>();
-        trueConditions = new ArrayList<Character>();
-        falseConditions = new ArrayList<Character>();
-        hiddenVariables = new ArrayList<Character>();
+        variables = new ArrayList<String>();
+        trueConditions = new ArrayList<String>();
+        falseConditions = new ArrayList<String>();
+        hiddenVariables = new ArrayList<String>();
         conditionsFlag = false;
         hiddenVarFlag = false;
+        addingSum = 0;
+        multiSum = 0;
         readVariables();
         System.out.println("Variables: " + variables);
         System.out.println("True Conditions: " + trueConditions);
@@ -29,7 +33,7 @@ public class VariableElimination {
     }
 
     public void readVariables(){
-        for(int i=0; i<data.length(); i++){
+        for(int i = 0; i < data.length(); i++){
             if(data.charAt(i) == '|'){
                 conditionsFlag = true;
             }
@@ -38,7 +42,7 @@ public class VariableElimination {
                 if(curr_condition >= 'A' && curr_condition <= 'Z') {
                     if (data.charAt(++i) == '=') {
                         if (data.charAt(++i) == 'T') {
-                            variables.add(curr_condition);
+                            variables.add(String.valueOf(curr_condition));
                         }
                     }
                 }
@@ -48,9 +52,9 @@ public class VariableElimination {
                 if(!hiddenVarFlag && (curr_condition >= 'A' && curr_condition <= 'Z')) {
                     if (data.charAt(++i) == '=') {
                         if (data.charAt(++i) == 'T') {
-                            trueConditions.add(curr_condition);
+                            trueConditions.add(String.valueOf(curr_condition));
                         } else {
-                            falseConditions.add(curr_condition);
+                            falseConditions.add(String.valueOf(curr_condition));
                         }
                     }
                 }
@@ -58,72 +62,67 @@ public class VariableElimination {
                     hiddenVarFlag = true;
                 }
                 else if(hiddenVarFlag && (curr_condition >= 'A' && curr_condition <= 'Z')){
-                    hiddenVariables.add(curr_condition);
+                    hiddenVariables.add(String.valueOf(curr_condition));
                 }
             }
         }
     }
 
-    public String variable_elimination()
-    {
-        String query = this.data;
-        HashMap<String, Node> vars = this.variableMap;
+    public String getAlgorithm(){
+        return Algorithm();
+    }
 
+
+
+    public String Algorithm() {
         float ans = 0; // the final answer
-        AtomicInteger mulOpers = new AtomicInteger(0); // multiplication operations
-        AtomicInteger addOpers = new AtomicInteger(0); // addition operations
-        String[] first = query.split(" "); // [query|evidence, hidden(order)]
-        first[0] = first[0].substring(2, first[0].length()-1);
-        String[] queryStr = first[0].split("\\|"); // [query | evidence]
-        String[] given = new String[0];
-        String[] hidden = first[1].split("-");
-        ArrayList<String> hiddenVars = new ArrayList<String>(Arrays.asList(hidden));
-        if (queryStr.length > 1) // else, we have no given nodes in this query
-            given = queryStr[1].split(",");
-        String queryVar = queryStr[0];
-        HashMap<String, Node> allVariables = new HashMap<String, Node>(); // copy of the hashmap
-        allVariables.putAll(vars); // put all keys and values from the network in the list
+        AtomicInteger mulOpers = new AtomicInteger(0);
+        AtomicInteger addOpers = new AtomicInteger(0);
+
+        String queryVar = variables.get(0);
+        HashMap<String, Node> allVariables = new HashMap<String, Node>(variableMap);
 
         // Init Factors:
-
         Vector<CPT> factors = new Vector<CPT>();
-        for (Node q : allVariables.values()) // linked hashmap of factors
+        for (Node q : allVariables.values()) {
             factors.add(new CPT(allVariables.get(q.key)));
+        }
 
         // Evidence Outcomes Update:
 
         for (CPT factor : factors)
-            for (String evidence : given)
-                if (factor.varsNames.contains(evidence.split("=")[0]))
+            for (String evidence : trueConditions)
+                if (factor.varsNames.contains(evidence))
                     factor.eliminateEvidence(evidence);
 
         // at this moment, the factors contain only query & hidden vars
 
-//  Unnecessary Factors Elimination:
+        // Unnecessary Factors Elimination:
 
         ArrayList<String> querEvid = new ArrayList<String>();
-        for (String name : vars.keySet()) {
-            if (!hiddenVars.contains(name) && !querEvid.contains(name))
+        for (String name : variableMap.keySet()) {
+            if (!hiddenVariables.contains(name) && !querEvid.contains(name)) {
                 querEvid.add(name);
+            }
         }
 
         // Quick Answer without Join/Elimination and Normalization case checking:
 
-        if (querEvid.size()==1)
+        if (querEvid.size() == 1)
             return quickAnswer(factors, querEvid, queryVar, addOpers, mulOpers);
 
         // Eliminate Factors of h Vars Which q\e Vars Aren't Ancestor of Them
 
         ArrayList<String> hiddenToRemove = new ArrayList<String>();
-        for (int i = 0; i < hiddenVars.size(); i++ ){
+        for (int i = 0; i < hiddenVariables.size(); i++) {
             int counter = 0;
-            for(String qeurOrEviVar : querEvid) {
+            for (String qeurOrEviVar : querEvid) {
                 BayesBall.resetVars();
-                if (vars.get(hiddenVars.get(i)).bfs(qeurOrEviVar) == null)
+                if (variableMap.get(hiddenVariables.get(i)).bfs(qeurOrEviVar) == null)
                     counter++;
                 if (counter == querEvid.size()) {
-                    hiddenToRemove.add(hiddenVars.get(i));
-                    hiddenVars.remove((hiddenVars.get(i)));
+                    hiddenToRemove.add(hiddenVariables.get(i));
+                    hiddenVariables.remove(hiddenVariables.get(i));
                     counter = 0;
                 }
             }
@@ -131,39 +130,38 @@ public class VariableElimination {
 
         // Eliminate Factors with h Vars Which Are Independent in Query:
 
-        for (int i = 0; i < hiddenVars.size(); i++ ){
+        for (int i = 0; i < hiddenVariables.size(); i++) {
             BayesBall.resetVars();
-            if (BayesBall.getDependent()){
-                hiddenToRemove.add(hiddenVars.get(i));
-                hiddenVars.remove((hiddenVars.get(i)));
+            if (BayesBall.getDependent()) {
+                hiddenToRemove.add(hiddenVariables.get(i));
+                hiddenVariables.remove(hiddenVariables.get(i));
                 i = 0;
             }
         }
 
-        for (String hid : hiddenToRemove){
+        for (String hid : hiddenToRemove) {
             for (int i = 0; i < factors.size(); i++)
-                if (factors.get(i).varsNames.contains(hid)){
+                if (factors.get(i).varsNames.contains(hid)) {
                     factors.remove(i);
                     i = 0;
                 }
         }
         sortFactors(factors);
 
-//  Hidden Vars while until no more Hidden vars in the factors:
+        // Hidden Vars while until no more Hidden vars in the factors:
 
         String toEliminate = "";
-        while (!hiddenVars.isEmpty())
-        {
-            toEliminate = hiddenVars.remove(0);
-//  join on each hidden var - until only 1 factor contain it, then eliminate it from that factor:
+        while (!hiddenVariables.isEmpty()) {
+            toEliminate = hiddenVariables.remove(0);
+            // join on each hidden var - until only 1 factor contain it, then eliminate it from that factor:
             for (int i = 0; i < factors.size(); i++)
                 if (factors.get(i).varsNames.contains(toEliminate))
                     for (int j = i + 1; j < factors.size(); j++)
                         if (factors.get(j).varsNames.contains(toEliminate) && factors.get(i).varsNames.contains(toEliminate)) {
-                            factors.add(factors.get(i).join(factors.get(j), mulOpers, vars, factors));
+                            factors.add(factors.get(i).join(factors.get(j), mulOpers, variableMap, factors));
                             sortFactors(factors);
-                            i=0;
-                            j=0;
+                            i = 0;
+                            j = 0;
                         }
             for (int i = 0; i < factors.size(); i++) // eliminate the curr hidden var from its factor:
                 if (factors.get(i).varsNames.contains(toEliminate)) {
@@ -174,30 +172,37 @@ public class VariableElimination {
         }
         // at this moment, we have only factor(s) with the query variable
 
-//  Join on Query:
+        // Join on Query:
 
         while (factors.size() > 1)
-            factors.add(factors.get(0).join(factors.get(1), mulOpers, vars, factors));
+            factors.add(factors.get(0).join(factors.get(1), mulOpers, variableMap, factors));
 
-//  Normalization & Answer Returning:
+        // Normalization & Answer Returning:
 
+        System.out.println("Factors: " + factors.get(0));
+        System.out.println("Query Variable: " + queryVar);
+        System.out.println(addOpers);
         ans = normalize(factors.get(0), queryVar, addOpers);
-        return Math.round(ans*100000.0)/100000.0+","+addOpers+","+mulOpers;
+        //System.out.println("Additions: " + addOpers);
+        //System.out.println("Multiplications: " + mulOpers);
+        //System.out.println("Answer: " + ans);
+        return String.format("%.5f", ans) + "," + addOpers + "," + mulOpers;
     }
 
-    private static String quickAnswer(Vector<CPT> factors, ArrayList<String> querEvid, String queryVar, AtomicInteger addOpers, AtomicInteger mulOpers)
-    { // the func returns the answer of the query when the answer is already given to us
+
+
+
+    private static String quickAnswer(Vector<CPT> factors, ArrayList<String> querEvid, String queryVar, AtomicInteger addOpers, AtomicInteger mulOpers) {
+        // the func returns the answer of the query when the answer is already given to us
         float ans = 0;
         for (CPT factor : factors)
-            if (factor.varsNames.size()==1 && factor.varsNames.contains(querEvid.get(0)))
+            if (factor.varsNames.size() == 1 && factor.varsNames.contains(querEvid.get(0)))
                 ans = ansWithoutNormalize(factor, queryVar);
-        return Math.round(ans*100000.0)/100000.0+","+addOpers+","+mulOpers;
+        return String.format("%.5f", ans) + "," + addOpers + "," + mulOpers;
     }
 
-    private static float normalize(CPT factor, String query, AtomicInteger addOpers)
-    {
-        String[] querySplit = query.split("=");
-        String outcome = querySplit[1];
+    private static float normalize(CPT factor, String query, AtomicInteger addOpers) {
+        String outcome = "T";
         ArrayList<String> key = new ArrayList<String>();
         key.add(outcome);
         float up = 0;
@@ -212,60 +217,42 @@ public class VariableElimination {
             if (row.getKey().equals(key))
                 up = row.getValue();
         }
-        return up/down;
+        return up / down;
     }
 
-    private static float ansWithoutNormalize(CPT factor, String query)
-    { // answer calculation when normalization is no needed
-        String[] querySplit = query.split("=");
-        String outcome = querySplit[1];
+    private static float ansWithoutNormalize(CPT factor, String query) { // answer calculation when normalization is no needed
+        String outcome = "T";
         ArrayList<String> key = new ArrayList<String>();
         key.add(outcome);
         float res = 0;
-        for (Map.Entry<ArrayList<String>, Float> row : factor.tableRows.entrySet()) {
-            if (row.getKey().equals(key)) {
+        for (Map.Entry<ArrayList<String>, Float> row : factor.tableRows.entrySet())
+            if (row.getKey().equals(key))
                 res = row.getValue();
-                break;
-            }
-        }
         return res;
     }
 
-    static void sortFactors(Vector<CPT> factors)
-    {
-        for (int i = 0; i < factors.size(); i++)
-            for (int j = i+1; j < factors.size(); j++) {
-                if (factors.get(i).tableRows.size() > factors.get(j).tableRows.size())
-                    swap(factors, i, j);
-                else if (factors.get(i).tableRows.size() == factors.get(j).tableRows.size())
-                    sortByASCII(factors, i, j);
+    private static void sortFactors(Vector<CPT> factors) { // by size of vars & outcomes in factor
+        CPT temp = factors.get(0);
+        LinkedHashMap<ArrayList<String>, Float> temp_table = factors.get(0).tableRows;
+        for (int i = 0; i < factors.size(); i++) {
+            for (int j = 1; j < factors.size() - i; j++) {
+                if (factors.get(i).varsNames.size() < factors.get(j).varsNames.size()) {
+                    temp = factors.get(i);
+                    factors.set(i, factors.get(j));
+                    factors.set(j, temp);
+                } else if (factors.get(i).varsNames.size() == factors.get(j).varsNames.size() && factors.get(i).tableRows.size() < factors.get(j).tableRows.size()) {
+                    temp_table = factors.get(i).tableRows;
+                    LinkedList<String> temp_key = factors.get(i).varsNames;
+                    factors.get(i).varsNames = factors.get(j).varsNames;
+                    factors.get(i).tableRows = factors.get(j).tableRows;
+                    factors.get(j).tableRows = temp_table;
+                    factors.get(j).varsNames = temp_key;
+                }
             }
+        }
     }
 
-    private static void sortByASCII(Vector<CPT> factors, int factorA, int factorB)
-    { // when two factors are equal - sort them by ASCII values of the vars
-        int VarsValues_A = 0;
-        int VarsValues_B = 0;
-        for (String str : factors.get(factorA).varsNames)
-            VarsValues_A += str.charAt(0);
-        for (String str : factors.get(factorB).varsNames)
-            VarsValues_B += str.charAt(0);
-        if (VarsValues_A > VarsValues_B)
-            swap(factors, factorA, factorB);
-    }
-
-    private static void swap(Vector<CPT> factors, int i, int j)
-    { // a simple func to swap between 2 factors in the Factors Vector:
-        LinkedHashMap<ArrayList<String>, Float> temp = factors.get(i).tableRows;
-        LinkedList<String> temp_key = factors.get(i).varsNames;
-        factors.get(i).varsNames = factors.get(j).varsNames;
-        factors.get(i).tableRows = factors.get(j).tableRows;
-        factors.get(j).tableRows = temp;
-        factors.get(j).varsNames = temp_key;
-    }
-
-    private static void removeFactor(Vector<CPT> factors)
-    { // every factor with a size of 1 or less is being removed!
+    private static void removeFactor(Vector<CPT> factors) { // every factor with a size of 1 or less is being removed!
         factors.removeIf(factor -> factor.tableRows.size() < 2);
     }
 
